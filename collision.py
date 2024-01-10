@@ -15,6 +15,7 @@ class Ultrasound:
     MAX_SPEED = None
     TRIG = 20
     ECHO = 21
+    reaction_distance = None
 
     servoMin = 150  # Min pulse length out of 4096
     servoMax = 600  # Max pulse length out of 4096
@@ -30,7 +31,7 @@ class Ultrasound:
     new_code = ''
     code_list = ['']
 
-    def __init__(self, driver, camera, max_speed):
+    def __init__(self, driver, camera, max_speed, reaction_distance):
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.TRIG, GPIO.OUT)
@@ -39,6 +40,7 @@ class Ultrasound:
         self.servo = sv.Servo(0)
         self.lens = camera
         self.MAX_SPEED = max_speed
+        self.reaction_distance = reaction_distance
 
     def capture(self):
         i = 0
@@ -115,21 +117,21 @@ class Ultrasound:
     def detection(self):
         while True:
             distance_front = self.measure(90)
-            if distance_front < 40:
+            if distance_front < self.reaction_distance:
                 self.driver.t_stop(0.2)
-                self.driver.t_back(15, 0.2)
+                self.driver.t_back(15, 0.3)
                 self.driver.t_stop(0.2)
                 distance_left = self.measure(175)
                 distance_right = self.measure(5)
 
                 if distance_left < 40 and distance_right < 40:
-                    self.driver.t_left(15, 1)
+                    self.driver.t_left(15, 0.7)
 
                 elif distance_left > distance_right:
-                    self.driver.t_left(15, 0.3)
+                    self.driver.t_left(15, 0.7)
                     self.driver.t_stop(0.5)
                 else:
-                    self.driver.t_right(15, 0.3)
+                    self.driver.t_right(15, 0.7)
                     self.driver.t_stop(0.5)
             else:
                 self.driver.t_forward(self.MAX_SPEED, 0)
@@ -155,6 +157,6 @@ class Ultrasound:
 if __name__ == '__main__':
     driver = drive.Driver()
     lens = camera.Camera()
-    ultrasound = Ultrasound(driver=driver, camera=lens, max_speed=40)
+    ultrasound = Ultrasound(driver=driver, camera=lens, max_speed=40, reaction_distance=30)
     ultrasound.run()
 

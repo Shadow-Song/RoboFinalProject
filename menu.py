@@ -3,6 +3,8 @@ import time
 import ir_tracing as ir
 import drive
 import controller
+import collision
+import camera
 
 class Menu:
     # Device constants
@@ -26,10 +28,11 @@ class Menu:
     LCD_CHARS = 16  # Characters per line (16 max)
     LCD_LINE_1 = 0x80  # LCD memory location for 1st line
     LCD_LINE_2 = 0xC0  # LCD memory location 2nd line
+    MAX_SPEED = 60
 
     selected_mode = -1
     selected_setting = -1
-    selected_settings = [0, 0, 0, 0, 0]
+    selected_settings = [0, 0, 0, 0]
 
     setting_options = [
         # 'Light',
@@ -37,7 +40,7 @@ class Menu:
         'Max Speed',
         # 'Image Size',
         'Distance',
-        'Collision',
+        # 'Collision',
         'Logging',
         'Run'
     ]
@@ -55,23 +58,26 @@ class Menu:
         ['25%', '50%', '75%', '100%'],
         # ['640x480', '1280x720', '1920x1080'],
         ['10cm', '20cm', '30cm', '40cm', '50cm', '1m'],
-        ['Stop', 'Back up', 'Turn Around'],
+        # ['Stop', 'Back up', 'Turn Around'],
         ['Disabled', 'Minimal', 'Extensive']
     ]
 
     speed_value = [0.25, 0.5, 0.75, 1]
+    distance_value = [10, 20, 30, 40, 50, 100]
     MAX_SPEED = 40
 
     available_settings = [
-        [1, 4, 5],
-        [0, 1, 4, 5],
-        [1, 2, 3, 4, 5],
-        [1, 4, 5]
+        [1, 3, 4],
+        [0, 1, 3, 4],
+        [1, 2, 3, 4],
+        [1, 3, 4]
     ]
 
     ir_tracer = None
     driver = None
     controller = None
+    ultrasound = None
+    lens = None
 
     def __init__(self):
         GPIO.setwarnings(False)
@@ -122,7 +128,7 @@ class Menu:
                     var += 1
             elif key == 1:
                 print(var)
-                if self.available_settings[self.selected_mode][var] == 7:
+                if self.available_settings[self.selected_mode][var] == len(self.setting_options)-1:
                     self.run()
                     return
                 self.selected_setting = self.available_settings[self.selected_mode][var]
@@ -236,19 +242,30 @@ class Menu:
 
     def ir(self):
         print("IR Running...")
-        self.ir_tracer = ir.IRTracer(self.speed_value[self.selected_settings[2]], self.driver)
+        self.ir_tracer = ir.IRTracer(self.speed_value[self.selected_settings[1]], self.driver)
         self.ir_tracer.run()
 
     def free_travel(self):
         print("Free Travel Running...")
+        self.lens = camera.Camera()
+        self.ultrasound = collision.Ultrasound(
+            driver=self.driver,
+            camera=self.lens, 
+            max_speed=self.MAX_SPEED*self.speed_value[self.selected_settings[1]], 
+            reaction_distance=self.distance_value[self.selected_settings[2]]
+        )
+        self.ultrasound.run()
+
 
     def controller_run(self):
         print("Remote Controll Running...")
-        self.controller = controller.DualShock4(driver=self.driver, max_speed=40)
+        self.controller = controller.DualShock4(driver=self.driver, max_speed=self.MAX_SPEED*self.speed_value[self.selected_settings[1]])
         self.controller.run()
 
     def camera(self):
         print("Camera Travel Running...")
+
+    
 
 if __name__ == '__main__':
     menu = Menu()
