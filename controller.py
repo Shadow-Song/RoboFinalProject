@@ -3,18 +3,20 @@ import RPi.GPIO as GPIO
 import drive
 import servo
 
-class Controller:
+class IRController:
     BtnPin = 19
     Gpin = 5
     Rpin = 6
 
     blocking = 0
     driver = None
+    MAX_SPEED = None
     servo_z = servo.Servo(1)
     servo_y = servo.Servo(2)
 
-    def __init__(self, driver: drive.Driver):
+    def __init__(self, driver: drive.Driver, max_speed: int):
         self.driver = driver
+        self.MAX_SPEED = max_speed
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.Rpin, GPIO.OUT)
@@ -115,8 +117,10 @@ class DualShock4:
         for event in pygame.event.get():
             if event.type == pygame.JOYBUTTONDOWN:
                 if event.button == 10:
+                    # PS Button: Exit
                     return True
                 if event.button == 1:
+                    # Circle Button: Speed Up
                     if self.left_speed == 40:
                         continue
                     else:
@@ -124,6 +128,7 @@ class DualShock4:
                         self.right_speed = self.right_speed + 10
                     print(f'{self.left_speed} -- {self.right_speed}')
                 if event.button == 0:
+                    # Cross Button: Speed Down
                     if self.left_speed == -40:
                         continue
                     else:
@@ -131,26 +136,29 @@ class DualShock4:
                         self.right_speed = self.right_speed - 10
                     print(f'{self.left_speed} -- {self.right_speed}')
                 if event.button == 3:
+                    # Square Button: Break
                     print('Stop')
                     self.left_speed = 0
                     self.right_speed = 0
                     self.break_flag = True
                 if event.button == 4:
-                    print('Shifting Left...')
+                    # L1 Button: Shift Left
+                    # print('Shifting Left...')
                     self.left_speed = 0 - (self.MAX_SPEED / 2)
                     self.right_speed = (self.MAX_SPEED / 2)
                 if event.button == 5:
-                    print('Shifting Right...')
+                    # R1 Button: Shift Right
+                    # print('Shifting Right...')
                     self.left_speed = self.MAX_SPEED / 2
                     self.right_speed = 0 - (self.MAX_SPEED / 2)
 
             if event.type == pygame.JOYAXISMOTION and not self.break_flag:
+                # Right Trigger: Forward
                 if event.axis == 5 and event.value > -1:
-                    print('Forward')
                     self.left_speed = self.MAX_SPEED * (round(event.value, 3)+1) * 0.5
                     self.right_speed = self.MAX_SPEED * (round(event.value, 3)+1) * 0.5
+                # Left Trigger: Back
                 if event.axis == 2 and event.value > -1:
-                    print('Back')
                     self.left_speed = 0 - self.MAX_SPEED * (round(event.value, 3)+1) * 0.5
                     self.right_speed = 0 - self.MAX_SPEED * (round(event.value, 3)+1) * 0.5
                 if event.value < -1:
@@ -158,48 +166,40 @@ class DualShock4:
 
             if event.type == pygame.JOYBUTTONUP:
                 if event.button == 3:
+                    # Square Button: Break Release
                     print("free")
                     self.break_flag = False
-                if event.button == 7:
-                    print('7 free')
+                if event.button == 7 or event.button == 6 or event.button == 4 or event.button == 5:
+                    # L1, L2, R1, R2 Released, Stop
                     self.left_speed = 0
                     self.right_speed = 0                    
-                if event.button == 6:
-                    print('6 free')
-                    self.left_speed = 0
-                    self.right_speed = 0
-                if event.button == 4:
-                    print('Stop Shifing Left.')
-                    self.left_speed = 0
-                    self.right_speed = 0
-                if event.button == 5:
-                    print('Stop Shifing Right.')
-                    self.left_speed = 0
-                    self.right_speed = 0
 
             if event.type == pygame.JOYHATMOTION:
                 hat_x, hat_y = event.value
                 if hat_x == -1:
+                    # Camera Left
                     if self.z_value == 150:
                         continue
                     else:
                         self.z_value = self.z_value + 15
                 elif hat_x == 1:
+                    # Camera Right
                     if self.z_value == 30:
                         continue
                     else:
                         self.z_value = self.z_value - 15
                 elif hat_y == 1:
+                    # Camera Up
                     if self.y_value == 90:
                         continue
                     else:
                         self.y_value = self.y_value + 15
                 elif hat_y == -1:
+                    # Camera Down
                     if self.y_value == 0:
                         continue
                     else:
                         self.y_value = self.y_value - 15
-                
 
     def run(self):
         while True:

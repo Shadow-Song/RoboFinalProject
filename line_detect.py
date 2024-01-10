@@ -37,6 +37,3 @@ class PathDetection:
         _, thresh = cv2.threshold(blue_area_gray, 1, 255, cv2.THRESH_BINARY)
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         self.color_area = sum(cv2.contourArea(contour) for contour in contours)
-
-    def run(self):
-        

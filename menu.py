@@ -30,10 +30,12 @@ class Menu:
     LCD_LINE_2 = 0xC0  # LCD memory location 2nd line
     MAX_SPEED = 60
 
+    # Mark Current Selection
     selected_mode = -1
     selected_setting = -1
-    selected_settings = [0, 0, 0, 0]
+    selected_settings = [0, 0, 0, 0, 0]
 
+    # Available Options
     setting_options = [
         # 'Light',
         'Line Color',
@@ -45,6 +47,7 @@ class Menu:
         'Run'
     ]
 
+    # Available Modes
     mode_options = [
         'IR Tracing',
         'Camera Tracing',
@@ -59,18 +62,20 @@ class Menu:
         # ['640x480', '1280x720', '1920x1080'],
         ['10cm', '20cm', '30cm', '40cm', '50cm', '1m'],
         # ['Stop', 'Back up', 'Turn Around'],
-        ['Disabled', 'Minimal', 'Extensive']
+        ['Disabled', 'Minimal', 'Extensive'],
+        ['IR Controller', 'DualShock 4'],
     ]
 
     speed_value = [0.25, 0.5, 0.75, 1]
     distance_value = [10, 20, 30, 40, 50, 100]
     MAX_SPEED = 40
 
+    # Available Settings
     available_settings = [
         [1, 3, 4],
         [0, 1, 3, 4],
         [1, 2, 3, 4],
-        [1, 3, 4]
+        [1, 3, 4, 5]
     ]
 
     ir_tracer = None
@@ -98,6 +103,7 @@ class Menu:
         # Initialize display
         self.lcd_init()
 
+    # Menu Level 1
     def menu_1(self):
         var = 0
         while True:
@@ -114,6 +120,7 @@ class Menu:
                 self.selected_mode = var
                 self.menu_2()
 
+    # Menu Level 2
     def menu_2(self):
         var = 0
         while True:
@@ -136,6 +143,7 @@ class Menu:
             elif key == 2:
                 return
 
+    # Menu Level 3
     def menu_3(self):
         var = 0
         while True:
@@ -214,6 +222,7 @@ class Menu:
         for i in range(self.LCD_CHARS):
             self.lcd_write(ord(message[i]), self.LCD_CHR)
 
+    # Wait for button press
     def wait_key(self) -> int:
         while True:
             self.select = GPIO.input(self.ButtonA)
@@ -229,6 +238,7 @@ class Menu:
                 print("Cancel Pressed.")
                 return 2
 
+    # Run selected mode
     def run(self):
         self.driver = drive.Driver()
         if self.selected_mode == 0:
@@ -259,7 +269,16 @@ class Menu:
 
     def controller_run(self):
         print("Remote Controll Running...")
-        self.controller = controller.DualShock4(driver=self.driver, max_speed=self.MAX_SPEED*self.speed_value[self.selected_settings[1]])
+        if self.selected_settings[4] == 0:
+            self.controller = controller.IRController(
+                driver=self.driver, 
+                max_speed=self.MAX_SPEED*self.speed_value[self.selected_settings[1]]
+            )
+        else:
+            self.controller = controller.DualShock4(
+                driver=self.driver, 
+                max_speed=self.MAX_SPEED*self.speed_value[self.selected_settings[1]]
+            )
         self.controller.run()
 
     def camera(self):
