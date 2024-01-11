@@ -3,23 +3,27 @@ import RPi.GPIO as GPIO
 import drive
 import servo
 import camera
+import log
 
 class IRController:
     BtnPin = 19
     Gpin = 5
     Rpin = 6
-
     blocking = 0
+
     driver: drive.Driver = None
     MAX_SPEED: int = None
     lens: camera.Camera = None
+    logger: log.Logger = None
+
     servo_z = servo.Servo(1)
     servo_y = servo.Servo(2)
 
-    def __init__(self, driver: drive.Driver, camera: camera.Camera, max_speed: int):
+    def __init__(self, driver: drive.Driver, max_speed: int, logger: log.Logger):
         self.driver = driver
-        self.lens = camera
         self.MAX_SPEED = max_speed
+        self.logger = logger
+        self.lens = camera.Camera(logger=self.logger)
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.Rpin, GPIO.OUT)
@@ -84,11 +88,11 @@ class IRController:
 
 
 class DualShock4:
-
     joystick = None
     driver: drive.Driver = None
     lens: camera.Camera = None
     MAX_SPEED: int = None
+    logger: log.Logger
 
     left_speed = 0
     right_speed = 0
@@ -100,9 +104,10 @@ class DualShock4:
     servo_z = servo.Servo(1)
     servo_y = servo.Servo(2)
 
-    def __init__(self, driver: drive.Driver, camera: camera.Camera, max_speed: int):
+    def __init__(self, driver: drive.Driver, max_speed: int, logger: log.Logger):
         self.driver = driver
-        self.lens = camera
+        self.logger = logger
+        self.lens = camera.Camera(logger=self.logger)
         self.joystick = self.init_joystick()
         self.MAX_SPEED = max_speed
 
@@ -110,12 +115,13 @@ class DualShock4:
         pygame.init()
         pygame.joystick.init()
         if pygame.joystick.get_count() == 0:
-            print("No joystick/gamepad found!")
+            print(f"No joystick/gamepad found!")
             return None
         else:
             joystick = pygame.joystick.Joystick(0)
             joystick.init()
             print(f"Initialized joystick: {joystick.get_name()}")
+            self.logger.write(f"Initialized joystick: {joystick.get_name()}", 0)
             return joystick
         
     def update_value(self) -> bool:
@@ -129,14 +135,16 @@ class DualShock4:
                     if self.left_speed == 40:
                         continue
                     else:
+                        self.logger.write('Speed Up.', 0)
                         self.left_speed = self.left_speed + 10
                         self.right_speed = self.right_speed + 10
-                    print(f'{self.left_speed} -- {self.right_speed}')
+                    # print(f'{self.left_speed} -- {self.right_speed}')
                 if event.button == 0:
                     # Cross Button: Speed Down
                     if self.left_speed == -40:
                         continue
                     else:
+                        self.logger.write('Speed Down.', 0)
                         self.left_speed = self.left_speed - 10
                         self.right_speed = self.right_speed - 10
                     print(f'{self.left_speed} -- {self.right_speed}')
@@ -146,6 +154,7 @@ class DualShock4:
                 if event.button == 3:
                     # Square Button: Break
                     print('Stop')
+                    self.logger.write('Break Pressed.', 0)
                     self.left_speed = 0
                     self.right_speed = 0
                     self.break_flag = True
@@ -165,10 +174,12 @@ class DualShock4:
                 if event.axis == 5 and event.value > -1:
                     self.left_speed = self.MAX_SPEED * (round(event.value, 3)+1) * 0.5
                     self.right_speed = self.MAX_SPEED * (round(event.value, 3)+1) * 0.5
+                    self.logger.write(f'Moving Forward on {self.MAX_SPEED * (round(event.value, 3)+1) * 0.5}', 1)
                 # Left Trigger: Back
                 if event.axis == 2 and event.value > -1:
                     self.left_speed = 0 - self.MAX_SPEED * (round(event.value, 3)+1) * 0.5
                     self.right_speed = 0 - self.MAX_SPEED * (round(event.value, 3)+1) * 0.5
+                    self.logger.write(f'Moving Backward on {self.MAX_SPEED * (round(event.value, 3)+1) * 0.5}', 1)
                 if event.value < -1:
                     break
 
@@ -176,11 +187,13 @@ class DualShock4:
                 if event.button == 3:
                     # Square Button: Break Release
                     print("free")
+                    self.logger.write('Break Released.', 0)
                     self.break_flag = False
                 if event.button == 7 or event.button == 6 or event.button == 4 or event.button == 5:
                     # L1, L2, R1, R2 Released, Stop
                     self.left_speed = 0
-                    self.right_speed = 0                    
+                    self.right_speed = 0
+                    self.logger.write('Speed Button Released.', 0)
 
             if event.type == pygame.JOYHATMOTION:
                 hat_x, hat_y = event.value
@@ -190,24 +203,28 @@ class DualShock4:
                         continue
                     else:
                         self.z_value = self.z_value + 15
+                        self.logger.write('Camera Turing Left.', 0)
                 elif hat_x == 1:
                     # Camera Right
                     if self.z_value == 30:
                         continue
                     else:
                         self.z_value = self.z_value - 15
+                        self.logger.write('Camera Turing Right.', 0)
                 elif hat_y == 1:
                     # Camera Up
                     if self.y_value == 90:
                         continue
                     else:
                         self.y_value = self.y_value + 15
+                        self.logger.write('Camera Turing Up.', 0)
                 elif hat_y == -1:
                     # Camera Down
                     if self.y_value == 0:
                         continue
                     else:
                         self.y_value = self.y_value - 15
+                        self.logger.write('Camera Turing Down.', 0)
 
     def run(self):
         while True:

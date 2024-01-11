@@ -2,16 +2,19 @@ import RPi.GPIO as GPIO
 import time
 import ir_tracing as ir
 import drive
-import controller
+import remote_controller as rc
 import collision
 import camera
 import identify_path
+import log
 
 class Menu:
     # Device constants
     ButtonA = 17
     ButtonB = 20
     ButtonC = 21
+
+    LED = 12
 
     LCD_RS = 5  # Pi pin 26
     LCD_E = 4  # Pi pin 24
@@ -29,7 +32,7 @@ class Menu:
     LCD_CHARS = 16  # Characters per line (16 max)
     LCD_LINE_1 = 0x80  # LCD memory location for 1st line
     LCD_LINE_2 = 0xC0  # LCD memory location 2nd line
-    MAX_SPEED = 60
+    MAX_SPEED = 80
 
     # Mark Current Selection
     selected_mode = -1
@@ -45,6 +48,7 @@ class Menu:
         'Distance',
         # 'Collision',
         'Logging',
+        'Controller',
         'Run'
     ]
 
@@ -69,21 +73,21 @@ class Menu:
 
     speed_value = [0.25, 0.5, 0.75, 1]
     distance_value = [10, 20, 30, 40, 50, 100]
-    MAX_SPEED = 40
 
     # Available Settings
     available_settings = [
-        [1, 3, 4],
-        [0, 1, 3, 4],
-        [1, 2, 3, 4],
+        [1, 3, 5],
+        [0, 1, 3, 5],
+        [1, 2, 3, 5],
         [1, 3, 4, 5]
     ]
 
-    ir_tracer = None
-    driver = None
+    ir_tracer: ir.IRTracer = None
+    driver: drive.Driver = None
     controller = None
-    ultrasound = None
-    lens = None
+    ultrasound: collision.Ultrasound = None
+    lens: camera.Camera = None
+    logger: log.Logger = None
 
     def __init__(self):
         GPIO.setwarnings(False)
@@ -94,6 +98,7 @@ class Menu:
         GPIO.setup(self.LCD_D5, GPIO.OUT)
         GPIO.setup(self.LCD_D6, GPIO.OUT)
         GPIO.setup(self.LCD_D7, GPIO.OUT)
+        GPIO.setup(self.LED, GPIO.OUT)
         GPIO.setup(self.ButtonA, GPIO.IN, GPIO.PUD_UP)
         GPIO.setup(self.ButtonB, GPIO.IN, GPIO.PUD_UP)
         GPIO.setup(self.ButtonC, GPIO.IN, GPIO.PUD_UP)
@@ -103,6 +108,7 @@ class Menu:
         self.cancel = GPIO.input(self.ButtonC)
         # Initialize display
         self.lcd_init()
+        GPIO.output(self.LED, False)
 
     # Menu Level 1
     def menu_1(self):
@@ -241,56 +247,67 @@ class Menu:
 
     # Run selected mode
     def run(self):
-        self.driver = drive.Driver()
+        self.logger = log.Logger(log_level=self.selected_settings[3])
+        self.driver = drive.Driver(logger=self.logger)
         if self.selected_mode == 0:
-            self.ir()
+            self.ir_tracing_run()
         elif self.selected_mode == 1:
-            self.camera()
+            self.camera_traing_tun()
         elif self.selected_mode == 2:
-            self.free_travel()
+            self.free_travel_run()
         elif self.selected_mode == 3:
             self.controller_run()
 
-    def ir(self):
+    def ir_tracing_run(self):
         print("IR Running...")
-        self.ir_tracer = ir.IRTracer(self.speed_value[self.selected_settings[1]], self.driver)
+        self.logger.write("IR Running...", 0)
+        self.ir_tracer = ir.IRTracer(
+            max_speed = self.MAX_SPEED * self.speed_value[self.selected_settings[1]], 
+            driver = self.driver,
+            logger = self.logger
+        )
         self.ir_tracer.run()
 
-    def free_travel(self):
+    def free_travel_run(self):
         print("Free Travel Running...")
-        self.lens = camera.Camera()
+        self.logger.write("Free Travel Running...", 0)
+        self.lens = camera.Camera(logger=self.logger)
         self.ultrasound = collision.Ultrasound(
-            driver=self.driver,
-            camera=self.lens, 
-            max_speed=self.MAX_SPEED*self.speed_value[self.selected_settings[1]], 
-            reaction_distance=self.distance_value[self.selected_settings[2]]
+            driver = self.driver,
+            camera = self.lens, 
+            max_speed = self.MAX_SPEED * self.speed_value[self.selected_settings[1]], 
+            reaction_distance = self.distance_value[self.selected_settings[2]],
+            logger = self.logger
         )
         self.ultrasound.run()
 
-
     def controller_run(self):
         print("Remote Controll Running...")
+        self.logger.write("Remote Controll Running...", 0)
         if self.selected_settings[4] == 0:
-            self.controller = controller.IRController(
-                driver=self.driver, 
-                max_speed=self.MAX_SPEED*self.speed_value[self.selected_settings[1]]
+            self.controller = rc.IRController(
+                driver = self.driver, 
+                max_speed = self.MAX_SPEED*self.speed_value[self.selected_settings[1]],
+                logger=self.logger,
+                
             )
         else:
-            self.controller = controller.DualShock4(
-                driver=self.driver, 
-                max_speed=self.MAX_SPEED*self.speed_value[self.selected_settings[1]]
+            self.controller = rc.DualShock4(
+                driver = self.driver, 
+                max_speed = self.MAX_SPEED*self.speed_value[self.selected_settings[1]],
+                logger=self.logger
             )
         self.controller.run()
 
-    def camera(self):
+    def camera_traing_tun(self):
         print("Camera Travel Running...")
+        self.logger.write("Camera Travel Running...", 0)
         identify_path.init(
-            rate=self.speed_value[self.selected_settings[1]],
-            color=self.selected_settings[0]
+            max_speed = 70 * self.speed_value[self.selected_settings[1]],
+            color = self.selected_settings[0]
         )
+        identify_path.run()
 
 if __name__ == '__main__':
     menu = Menu()
     menu.menu_1()
-    # menu.lcd_text("Hello", menu.LCD_LINE_1)
-    # time.sleep(10)

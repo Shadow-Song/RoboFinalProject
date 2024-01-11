@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO
 import time
+import log
 
 class Driver:
     PWMB = 18
@@ -12,7 +13,9 @@ class Driver:
     L_Motor = None
     R_Motor = None
 
-    def __init__(self):
+    logger: log.Logger = None
+
+    def __init__(self, logger):
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.AIN2, GPIO.OUT)
@@ -22,6 +25,7 @@ class Driver:
         GPIO.setup(self.BIN2, GPIO.OUT)
         GPIO.setup(self.PWMB, GPIO.OUT)
 
+        self.logger = logger
         self.L_Motor = GPIO.PWM(self.PWMA, 100)
         self.L_Motor.start(0)
         self.R_Motor = GPIO.PWM(self.PWMB, 100)
@@ -36,6 +40,7 @@ class Driver:
         GPIO.output(self.BIN2, not reverse_R)  # BIN1
 
     def drive(self, left, right):
+        self.logger.write(f'LeftSpeed: {left} -- RightSpeed: {right}', 1)
         reverse_L = True
         reverse_R = True
         if left < 0:
@@ -47,6 +52,7 @@ class Driver:
         self.set_motor(left, right, reverse_L, reverse_R)
 
     def t_forward(self, speed, t_time):
+        self.logger.write(f'Forward on {speed}, {t_time}second(s).', 0)
         self.L_Motor.ChangeDutyCycle(speed)
         GPIO.output(self.AIN2, False)#AIN2
         GPIO.output(self.AIN1, True) #AIN1
@@ -57,6 +63,7 @@ class Driver:
         time.sleep(t_time)
         
     def t_stop(self, t_time):
+        self.logger.write(f'Stop {t_time}second(s).', 0)
         self.L_Motor.ChangeDutyCycle(0)
         GPIO.output(self.AIN2, False)#AIN2
         GPIO.output(self.AIN1, False) #AIN1
@@ -67,6 +74,7 @@ class Driver:
         time.sleep(t_time)
         
     def t_back(self, speed, t_time):
+        self.logger.write(f'Go Back on {speed}, {t_time}second(s).', 0)
         self.L_Motor.ChangeDutyCycle(speed)
         GPIO.output(self.AIN2, True)#AIN2
         GPIO.output(self.AIN1, False) #AIN1
@@ -77,6 +85,7 @@ class Driver:
         time.sleep(t_time)
 
     def t_left(self, speed, t_time):
+        self.logger.write(f'Shift left {speed}, {t_time}second(s).', 0)
         self.L_Motor.ChangeDutyCycle(speed)
         GPIO.output(self.AIN2, True)#AIN2
         GPIO.output(self.AIN1, False) #AIN1
@@ -87,6 +96,7 @@ class Driver:
         time.sleep(t_time)
 
     def t_right(self, speed, t_time):
+        self.logger.write(f'Shift on {speed}, {t_time}second(s).', 0)
         self.L_Motor.ChangeDutyCycle(speed)
         GPIO.output(self.AIN2, False)#AIN2
         GPIO.output(self.AIN1, True) #AIN1

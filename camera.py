@@ -1,6 +1,6 @@
 import cv2
 import pyzbar.pyzbar as pyzbar
-import logging
+import log
 
 class Camera:
     cap = cv2.VideoCapture(0)
@@ -19,7 +19,7 @@ class Camera:
     w1 = 300
     h1 = 300
 
-    logger: logging.Logger = None
+    logger: log.Logger = None
 
     def __init__(self, logger):
         self.logger = logger
@@ -38,6 +38,7 @@ class Camera:
         if self.capture_flag:
             cv2.imwrite(f'./img/photo{self.image_index}.jpg', self.frame)
             print(f'照片{self.image_index}已保存')
+            self.logger.write(f'照片{self.image_index}已保存', 0)
             self.image_index += 1
         self.capture_flag = False
         
@@ -53,7 +54,7 @@ class Camera:
             print('Camera not detected.')
             return
         while True:
-            ret, img = self.get_frame()
+            ret, img = self.cap.read()
             if not ret:
                 break
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -64,6 +65,7 @@ class Camera:
 
                 cv2.imwrite(f'./QR_img/img{i}.jpg', img)
                 print(f'Image {i} saved.')
+                self.logger.write(f'Image {i} saved.', 0)
                 self.code_list.append(self.new_code)
                 i += 1
 
@@ -83,7 +85,8 @@ class Camera:
 
             self.new_code = code_string.data.decode('utf-8')
             code_type = code_string.type
-            print("[INFO] Found {} barcode: {}".format(code_type, self.new_code))
+            print(f'[INFO] Found {code_type} barcode: {self.new_code}')
+            self.logger.write(f'[INFO] Found {code_type} barcode: {self.new_code}', 0)
 
     def append_code(self, new_code):
         return new_code in self.code_list

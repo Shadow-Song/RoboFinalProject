@@ -2,9 +2,12 @@ import cv2 as cv
 import numpy as np
 from cv2 import VideoCapture
 import drive
+import log
+import servo as sv
 
 ref = False
-driver = drive.Driver()
+driver: drive.Driver = None
+logger: log.Logger = None
 MAX_SPEED = 40
 time_l = -1
 time_r = 0
@@ -26,21 +29,25 @@ upper = [
     [30, 255, 255]
 ]
 
-speed_rate: float = None
 color_index: int = None
 
-def init(rate: float, color: int):
-    global speed_rate
+def init(drive: drive.Driver, logging: log.Logger, max_speed: float, color: int):
+    global MAX_SPEED
     global color_index
+    global driver
+    global logger
 
-    speed_rate = rate
+    servo = sv.Servo(0)
+    servo.write(0)
+    driver = drive
+    logger = logging
+    MAX_SPEED = max_speed
     color_index = color
 
 def run():
     capture = show_lines()
     capture.release()  # release the space
     cv.destroyAllWindows()  # close the windows
-
 
 class Point:
     """ class Point for points
@@ -55,6 +62,7 @@ def show_lines() -> VideoCapture:
     """
     global ref
     global time_l
+    global logger
     capture = get_camera()  # get camera
 
     while True:
@@ -65,7 +73,6 @@ def show_lines() -> VideoCapture:
         lines = cv.HoughLinesP(edges, 1, np.pi / 180, 70, maxLineGap=500)  # get the lines in finial picture
 
         # the shape is the height (0) and width (1)
-        width = frame.shape[1]
         height = frame.shape[0]
         min_height = height *0  # look at 70% to the bottom of the height.
         max_height = height
@@ -121,21 +128,20 @@ def show_lines() -> VideoCapture:
                             #     continue
                             # if it is a long horizontal line which means turn left and right.
                             if (points[j][0].x < (points[n][0].x - 30)):
-                                
                                 time_l =0
                             elif(points[j][1].x > (points[n][0].x + 30)):
                                 time_l = 1
-                            print(time_l)
+                            # print(time_l)
                     if result >= 45:  # if the line is vertical.
                         if (200< points[j][0].x<400) & (200< points[j][1].x<400):
                             if points[j][0].x < 300:
                                 error = 1- (300 - points[j][0].x)/300
-                                driver.drive(35 * error, 35)
-                                print(35 * error,"--------", 35)
+                                driver.drive(MAX_SPEED * error, MAX_SPEED)
+                                # print(35 * error,"--------", 35)
                             if points[j][0].x > 300:
                                 error = 1- (points[j][0].x - 300)/300
-                                driver.drive(35, 35 * error)
-                                print(35 ,"--------", 35* error)
+                                driver.drive(MAX_SPEED, MAX_SPEED * error)
+                                # print(35 ,"--------", 35* error)
                         if ((400< points[j][0].x) & (400< points[j][1].x))|((200< points[j][0].x<400) & (400< points[j][1].x)) | (( points[j][0].x<200) & (200< points[j][1].x<400)):
                             driver.drive(40,10)
                         if ((points[j][0].x<200) & (points[j][1].x<200)) | ((points[j][0].x<200) & (200< points[j][1].x<400)) | ((200< points[j][0].x<400) & ( points[j][1].x>400)):
@@ -149,17 +155,18 @@ def show_lines() -> VideoCapture:
                                 time_l = 0
                             elif(points[j][1].x > (points[m][0].x + 30)):
                                 time_l = 1
-                            print(time_l)
+                            # print(time_l)
                     if result < -45:  # if the line is vertical.
                         if (200< points[j][0].x<400) & (200< points[j][1].x<400):
                             if points[j][0].x < 300:
                                 error = 1- (300 - points[j][0].x)/300
-                                driver.drive(35 * error, 35)
-                                print(35 * error,"--------", 35)
+                                # TODO
+                                driver.drive(MAX_SPEED * error, MAX_SPEED)
+                                # print(35 * error,"--------", 35)
                             if points[j][0].x > 300:
                                 error = 1- (points[j][0].x - 300)/300
                                 driver.drive(35, 35 * error)
-                                print(35 ,"--------", 35* error)
+                                # print(35 ,"--------", 35* error)
                         if ((400< points[j][0].x) & (400< points[j][1].x))|((200< points[j][0].x<400) & (400< points[j][1].x)) | (( points[j][0].x<200) & (200< points[j][1].x<400)):
                             driver.drive(40,10)
                         if ((points[j][0].x<200) & (points[j][1].x<200)) | ((points[j][0].x<200) & (200< points[j][1].x<400)) | ((200< points[j][0].x<400) & ( points[j][1].x>400)):
@@ -171,13 +178,17 @@ def show_lines() -> VideoCapture:
         # if it has a typeError
         except TypeError:
             if time_l == 0:
-                print("left")
-                driver.drive(-25, 25)
+                # print("left")
+                driver.drive(-30, 30)
+                logger.write('Decision, turn left.', 0)
+                logger.write('Left: -30 -- Right: 30', 1)
                 # time.sleep(1.25)
                 time_l=-1
             if time_l == 1:
-                print("right")
-                driver.drive(25, -25)
+                # print("right")
+                driver.drive(30, -30)
+                logger.write('Decision, turn right.', 0)
+                logger.write('Left: 30 -- Right: -30', 1)
                 # time.sleep(1.25)
                 time_l = -1
             c = cv.waitKey(1) & 0xff
@@ -213,7 +224,7 @@ def get_camera():
     capture = cv.VideoCapture(0)  # open the computer camera.
     # if the camera cannot be opened, print something.
     if not capture.isOpened():
-        print("Cannot open camera")
+        # print("Cannot open camera")
         exit()
     return capture
 
