@@ -6,10 +6,11 @@ import time
 
 ref = False
 driver = drive.Driver()
-MAX_SPEED = 20
-time_l = 0
+MAX_SPEED = 40
+time_l = -1
 time_r = 0
 time_s = 0
+f =0
 
 
 class Point:
@@ -25,6 +26,7 @@ def show_lines() -> VideoCapture:
     """ This function will show out the camera and blue lines in it.
     """
     global ref
+    global time_l
     capture = get_camera()  # get camera
 
     while True:
@@ -37,13 +39,13 @@ def show_lines() -> VideoCapture:
         # the shape is the height (0) and width (1)
         width = frame.shape[1]
         height = frame.shape[0]
-        min_height = height * 0.3  # look at 70% to the bottom of the height.
+        min_height = height *0  # look at 70% to the bottom of the height.
         max_height = height
-        min_width = width * 0.3  # look at 30% to the left of the center.
-        max_width = width * 0.7  # look at 30% to the right of the center.
-
+        min_width = width*0 
+        max_width = width     
         # traverse the lines.
         try:
+        
             new_lines = []  # new_lines will store lines
             i = 0  # "i" remembers the number of lines
             results = []  # results will store the slopes of lines
@@ -59,6 +61,7 @@ def show_lines() -> VideoCapture:
                 result = slope(x1, y1, x2, y2)
                 results.append(result)
                 i = i + 1
+            
 
             # catch and print lines
             for j in range(i):
@@ -82,40 +85,60 @@ def show_lines() -> VideoCapture:
                         results[j] = 1000
 
                 # set it to catch the lines only in specific area.
-                if (min_width < average_x < max_width) & (min_height < average_y < max_height) & (results[j] != 1000):
+                # (min_width < average_x < max_width)&
+                if (min_height < average_y < max_height) & (results[j] != 1000):
                     # show the angle of lines, and divide the horizontal lines if it means turn left and right.
                     if 0 <= result < 45:  # if the line is horizontal
                         for n in range(i):
                             if (results[n] == 1000) | (j == n):  # give up the useless lines
                                 continue
+                            # if points[j][0].y < points[n][1].y:
+                            #     continue
                             # if it is a long horizontal line which means turn left and right.
-                            if (points[j][0].x < (points[n][0].x - 30)) & (points[j][1].x > (points[n][0].x + 30)):
-                                cv.putText(frame, str(round(90 - result, 1)), (points[j][1].x, points[j][1].y), 0, 0.5,
-                                           (255, 255, 255), 1, cv.LINE_AA)
-                                cv.putText(frame, str(-round(90 - result, 1)), (points[j][0].x, points[j][0].y), 0, 0.5,
-                                           (255, 255, 255), 1, cv.LINE_AA)
-                            else:  # if it is not a long horizontal line.
-                                cv.putText(frame, str(round(90 - result, 1)), (average_x, average_y), 0, 0.5,
-                                           (255, 255, 255), 1, cv.LINE_AA)
+                            if (points[j][0].x < (points[n][0].x - 30)):
+                                
+                                time_l =0
+                            elif(points[j][1].x > (points[n][0].x + 30)):
+                                time_l = 1
+                            print(time_l)
                     if result >= 45:  # if the line is vertical.
-                        cv.putText(frame, str(round(90 - result, 1)), (average_x, average_y), 0, 0.5, (255, 255, 255),
-                                   1, cv.LINE_AA)
+                        if (200< points[j][0].x<400) & (200< points[j][1].x<400):
+                            if points[j][0].x < 300:
+                                error = 1- (300 - points[j][0].x)/300
+                                driver.drive(35 * error, 35)
+                                print(35 * error,"--------", 35)
+                            if points[j][0].x > 300:
+                                error = 1- (points[j][0].x - 300)/300
+                                driver.drive(35, 35 * error)
+                                print(35 ,"--------", 35* error)
+                        if ((400< points[j][0].x) & (400< points[j][1].x))|((200< points[j][0].x<400) & (400< points[j][1].x)) | (( points[j][0].x<200) & (200< points[j][1].x<400)):
+                            driver.drive(40,10)
+                        if ((points[j][0].x<200) & (points[j][1].x<200)) | ((points[j][0].x<200) & (200< points[j][1].x<400)) | ((200< points[j][0].x<400) & ( points[j][1].x>400)):
+                            driver.drive(10,40)
                     if -45 <= result < 0:  # if the line is horizontal
                         for m in range(i):
                             if (results[m] == 1000) | (j == m):  # give up the useless lines
                                 continue
                             # if it is a long horizontal line which means turn left and right.
-                            if (points[j][0].x < (points[m][0].x - 50)) & (points[j][1].x > (points[m][0].x + 50)):
-                                cv.putText(frame, str(round(-90 - result, 1)), (points[j][1].x, points[j][1].y), 0,
-                                           0.5, (255, 255, 255), 1, cv.LINE_AA)
-                                cv.putText(frame, str(-round(-90 - result, 1)), (points[j][0].x, points[j][0].y), 0,
-                                           0.5, (255, 255, 255), 1, cv.LINE_AA)
-                            else:  # if it is not a long horizontal line.
-                                cv.putText(frame, str(round(-90 - result, 1)), (average_x, average_y), 0, 0.5,
-                                           (255, 255, 255), 1, cv.LINE_AA)
+                            if (points[j][0].x < (points[m][0].x - 30)):
+                                time_l = 0
+                            elif(points[j][1].x > (points[m][0].x + 30)):
+                                time_l = 1
+                            print(time_l)
                     if result < -45:  # if the line is vertical.
-                        cv.putText(frame, str(round(-90 - result, 1)), (average_x, average_y), 0, 0.5, (255, 255, 255),
-                                   1, cv.LINE_AA)
+                        if (200< points[j][0].x<400) & (200< points[j][1].x<400):
+                            if points[j][0].x < 300:
+                                error = 1- (300 - points[j][0].x)/300
+                                driver.drive(35 * error, 35)
+                                print(35 * error,"--------", 35)
+                            if points[j][0].x > 300:
+                                error = 1- (points[j][0].x - 300)/300
+                                driver.drive(35, 35 * error)
+                                print(35 ,"--------", 35* error)
+                        if ((400< points[j][0].x) & (400< points[j][1].x))|((200< points[j][0].x<400) & (400< points[j][1].x)) | (( points[j][0].x<200) & (200< points[j][1].x<400)):
+                            driver.drive(40,10)
+                        if ((points[j][0].x<200) & (points[j][1].x<200)) | ((points[j][0].x<200) & (200< points[j][1].x<400)) | ((200< points[j][0].x<400) & ( points[j][1].x>400)):
+                            driver.drive(10,40)
 
                     # print lines
                     cv.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 1)
@@ -135,16 +158,6 @@ def show_lines() -> VideoCapture:
                             cv.putText(frame, "junction(virtual):", (30, 20), 0, 0.5, (255, 255, 255), 1, cv.LINE_AA)
                             cv.putText(frame, str(round(2 * ((height - y) / height), 2)), (30, 40), 0, 0.5,
                                        (255, 255, 255), 1, cv.LINE_AA)
-                            a = 1
-                    # if i <= 2:
-                    #     x = int(points[h][1].x)
-                    #     y = int(points[h][1].y)
-                    #     if (results[h] < -45) & (results[n] != 1000):
-                    #         print(results[h])
-                    #         cv.circle(frame, (x, y), 3, (0, 0, 255), 1, 3)
-                    #         cv.putText(frame, "junction(virtual):", (30, 20), 0, 0.5, (255, 255, 255), 1, cv.LINE_AA)
-                    #         cv.putText(frame, str(round(2 * ((height - y) / height), 2)), (30, 40), 0, 0.5,
-                    #                    (255, 255, 255), 1, cv.LINE_AA)
                             a = 1
                     if (results[n] == 1000) | (h == n):
                         continue
@@ -168,10 +181,20 @@ def show_lines() -> VideoCapture:
                         points[n][1].x = points[n][1].x - 20
 
             # check what type of the road it is
-            road_type(i, points, results, point, frame)
+            # road_type(i, points, results, point, frame)
 
         # if it has a typeError
         except TypeError:
+            if time_l == 0:
+                print("left")
+                driver.drive(-25, 25)
+                # time.sleep(1.25)
+                time_l=-1
+            if time_l == 1:
+                print("right")
+                driver.drive(25, -25)
+                # time.sleep(1.25)
+                time_l = -1
             c = cv.waitKey(1) & 0xff
             if c == 27:
                 break
@@ -237,21 +260,27 @@ def road_type(i: int, points: list, results: list, point: Point, frame):
         for a in range(i):
             if results[a] == 1000:  # give up the useless lines
                 continue
-            if (((point.y - points[a][1].y) > 50) | (((points[a][0].y - points[a][1].y) > 100) & (i <= 2))) | ((points[m][1].y - point.y ) > 50) | ((( points[m][1].y - points[m][0].y ) > 100) & (i <= 2)):
-                print('Go Straight')
-                if time_s <2:
-                    time_s += 1
-                    break
-                if results[a] > 0:
-                    print(30*(results[a]/90))
-                    driver.drive(30, 30*(results[a]/90))
-                if results[a] < 0:
-                    print(results[a]/90)
-                    driver.drive(-30*(results[a]/90), 30)
-                time_s += 1
-                if time_s >= 2:
-                    time_r = 0
-                    time_l = 0
+            print(results[a])
+            if -30 < results[a] < 30:
+                continue
+            # if time_s < 7:
+            #     time_s += 1
+            #     continue
+            if (results[a] > 0):
+                if results[a] == 90 :
+                    driver.drive(20, 20)
+                else:
+                    s = int(40*(results[a]/90))
+                    driver.drive(20, s)
+                    print(40, "----",int(s))
+            if (results[a] < 0):
+                s = int(-20*(results[a]/90))
+                driver.drive(s, 40)
+                print(s, "----",40)
+            time_s += 1
+            if time_s >= 5:
+                time_r = 0
+                time_l = 0
 
     elif (tag[1] == tag[2] == 1) & (tag[0] == tag[3] == 0):
         print("It is a terminating T-junction, it has two paths, left and right.")
@@ -260,45 +289,36 @@ def road_type(i: int, points: list, results: list, point: Point, frame):
         for b in range(i):
             if results[b] == 1000:  # give up the useless lines
                 continue
-            if ((point.x - points[b][0].x) > 50) & (point.x != 0):
-                print("Go Left")
-                if time_l > 1:
-                    driver.drive(0, MAX_SPEED)
-                    time_s = 0
-                elif time_l <= 1 :
-                    driver.drive(10, 10)
-                    print(time_l)
-                time_l += 1
+            driver.drive(-MAX_SPEED, MAX_SPEED)
+            print(0,"----",MAX_SPEED)
+            time_s = 0
     elif (tag[0] == tag[2] == 1) & (tag[1] == tag[3] == 0):
         print("It is a right T-junction, it has 2 paths, right and forwards.")
+        for c in range(i):
+            if results[c] == 1000:  # give up the useless lines
+                continue
+            driver.drive(MAX_SPEED, -MAX_SPEED)
+            print(MAX_SPEED,"----",0)
+            time_s = 0
     elif (tag[1] == 1) & (tag[0] == tag[2] == tag[3] == 0):
         print("It is a left corner, it has only 1 path, left.")
         for b in range(i):
             if results[b] == 1000:  # give up the useless lines
                 continue
-            if ((point.x - points[b][0].x) > 50) & (point.x != 0):
-                print("Go Left")
-                if time_l > 1:
-                    driver.drive(0, MAX_SPEED)
-                    time_s = 0
-                elif time_l <= 1 :
-                    driver.drive(10, 10)
-                    print(time_l)
-                time_l += 1
+            driver.drive(0, MAX_SPEED)
+            print(0,"----",MAX_SPEED)
+            time_s = 0
+
+                
     elif (tag[2] == 1) & (tag[0] == tag[1] == tag[3] == 0):
         print("It is a right corner, it has only 1 path, right.")
         for c in range(i):
             if results[c] == 1000:  # give up the useless lines
                 continue
-            if ((points[c][1].x - point.x) > 50) & (point.x != 0):
-                print('Go Right')
-                if time_r > 1:
-                    driver.drive(MAX_SPEED, 0)
-                    time_s = 0
-                elif time_r <= 1:
-                    driver.drive(10, 10)
-                    print(time_r)
-                time_r += 1
+            driver.drive(MAX_SPEED, 0)
+            print(MAX_SPEED,"----",0)
+            time_s = 0
+               
     elif (tag[0] == tag[1] == tag[2] == 1) & (tag[3] == 0):
         print("It is a crossroads, it has 3 paths, left, forwards and right.")
     elif (tag[3] == 1) & (tag[0] == tag[1] == tag[2] == 0):

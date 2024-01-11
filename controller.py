@@ -2,6 +2,7 @@ import pylirc, time, pygame
 import RPi.GPIO as GPIO
 import drive
 import servo
+import camera
 
 class IRController:
     BtnPin = 19
@@ -9,13 +10,15 @@ class IRController:
     Rpin = 6
 
     blocking = 0
-    driver = None
-    MAX_SPEED = None
+    driver: drive.Driver = None
+    MAX_SPEED: int = None
+    lens: camera.Camera = None
     servo_z = servo.Servo(1)
     servo_y = servo.Servo(2)
 
-    def __init__(self, driver: drive.Driver, max_speed: int):
+    def __init__(self, driver: drive.Driver, camera: camera.Camera, max_speed: int):
         self.driver = driver
+        self.lens = camera
         self.MAX_SPEED = max_speed
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
@@ -83,8 +86,9 @@ class IRController:
 class DualShock4:
 
     joystick = None
-    driver = None
-    MAX_SPEED: int
+    driver: drive.Driver = None
+    lens: camera.Camera = None
+    MAX_SPEED: int = None
 
     left_speed = 0
     right_speed = 0
@@ -96,8 +100,9 @@ class DualShock4:
     servo_z = servo.Servo(1)
     servo_y = servo.Servo(2)
 
-    def __init__(self, driver: drive.Driver, max_speed: int):
+    def __init__(self, driver: drive.Driver, camera: camera.Camera, max_speed: int):
         self.driver = driver
+        self.lens = camera
         self.joystick = self.init_joystick()
         self.MAX_SPEED = max_speed
 
@@ -135,6 +140,9 @@ class DualShock4:
                         self.left_speed = self.left_speed - 10
                         self.right_speed = self.right_speed - 10
                     print(f'{self.left_speed} -- {self.right_speed}')
+                if event.button == 2:
+                    # Triangle Button: Capture
+                    self.lens.capture()
                 if event.button == 3:
                     # Square Button: Break
                     print('Stop')
@@ -208,6 +216,7 @@ class DualShock4:
             self.driver.drive(self.left_speed, self.right_speed)
             self.servo_y.write(self.y_value)
             self.servo_z.write(self.z_value)
+            self.lens.run()
             if stop:
                 break
         pygame.quit()
@@ -215,6 +224,7 @@ class DualShock4:
 
 if __name__ ==  '__main__':
     driver = drive.Driver()
-    controller = DualShock4(driver=driver, max_speed=30)
+    lens = camera.Camera()
+    controller = DualShock4(driver=driver, camera=lens, max_speed=30)
     controller.run()
 
