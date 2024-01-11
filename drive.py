@@ -40,7 +40,7 @@ class Driver:
         GPIO.output(self.BIN2, not reverse_R)  # BIN1
 
     def drive(self, left, right):
-        self.logger.write(f'LeftSpeed: {left} -- RightSpeed: {right}', 1)
+        # self.logger.write(f'LeftSpeed: {left} -- RightSpeed: {right}', 1)
         reverse_L = True
         reverse_R = True
         if left < 0:

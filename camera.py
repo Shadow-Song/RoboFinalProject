@@ -28,6 +28,7 @@ class Camera:
         return self.cap.isOpened()
     
     def get_frame(self):
+        _, self.frame = self.cap.read()
         return self.frame
     
     def get_size(self):

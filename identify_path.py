@@ -4,19 +4,21 @@ from cv2 import VideoCapture
 import drive
 import log
 import servo as sv
+import camera
 
 ref = False
 driver: drive.Driver = None
 logger: log.Logger = None
+lens: camera.Camera = None
 MAX_SPEED = 40
 time_l = -1
 time_r = 0
 time_s = 0
-f =0
+f = 0
 
 lower = [
     [64, 100, 100],
-    [0, 70, 50],
+    [0, 90, 90],
     [35, 70, 50],
     [0, 0, 0],
     [20, 100, 100]
@@ -25,29 +27,32 @@ upper = [
     [124, 255, 255],
     [10, 255, 255],
     [85, 255, 255],
-    [180, 255, 30],
+    [180, 255, 70],
     [30, 255, 255]
 ]
 
 color_index: int = None
 
-def init(drive: drive.Driver, logging: log.Logger, max_speed: float, color: int):
+def init(drive: drive.Driver, logging: log.Logger, max_speed: float, color: int, camera: camera.Camera):
     global MAX_SPEED
     global color_index
     global driver
     global logger
+    global lens
 
     servo = sv.Servo(0)
     servo.write(0)
     driver = drive
     logger = logging
+    lens = camera
+
     MAX_SPEED = max_speed
     color_index = color
 
 def run():
+    global color_index
+    print(f'Color Index: {color_index}')
     capture = show_lines()
-    capture.release()  # release the space
-    cv.destroyAllWindows()  # close the windows
 
 class Point:
     """ class Point for points
@@ -205,6 +210,7 @@ def show_lines() -> VideoCapture:
     return capture
 
 def process_image(frame):
+    global color_index
     """ Process the picture to get the edges of the picture by getting hsv, mixture and gray type of picture
     """
     img = cv.cvtColor(frame, cv.COLOR_BGR2HSV)  # get the hsv mode of picture
@@ -221,7 +227,8 @@ def process_image(frame):
 def get_camera():
     """ get camera
     """
-    capture = cv.VideoCapture(0)  # open the computer camera.
+    global lens
+    capture = lens.cap # open the computer camera.
     # if the camera cannot be opened, print something.
     if not capture.isOpened():
         # print("Cannot open camera")
@@ -249,7 +256,13 @@ def slope(x1: int, y1: int, x2: int, y2: int) -> int:
     return result
 
 if __name__ == '__main__':
-    capture = show_lines()  # use method show_lines
-
-    capture.release()  # release the space
-    cv.destroyAllWindows()  # close the windows
+    
+    logger = log.Logger(0)
+    driver = drive.Driver(logger=logger)
+    init(
+        drive=driver,
+        logging=logger,
+        max_speed=30,
+        color=0
+    )
+    run()

@@ -5,6 +5,7 @@ import drive
 import remote_controller as rc
 import collision
 import camera
+import rebuild
 import identify_path
 import log
 
@@ -88,6 +89,7 @@ class Menu:
     ultrasound: collision.Ultrasound = None
     lens: camera.Camera = None
     logger: log.Logger = None
+    path_identify: rebuild.PathIdentify = None
 
     def __init__(self):
         GPIO.setwarnings(False)
@@ -141,7 +143,6 @@ class Menu:
                 else:
                     var += 1
             elif key == 1:
-                print(var)
                 if self.available_settings[self.selected_mode][var] == len(self.setting_options)-1:
                     self.run()
                     return
@@ -165,6 +166,7 @@ class Menu:
                 else:
                     var += 1
             elif key == 1:
+                print(var)
                 self.selected_settings[self.selected_setting] = var
                 return
             elif key == 2:
@@ -269,9 +271,9 @@ class Menu:
         self.ir_tracer.run()
 
     def free_travel_run(self):
+        self.lens = camera.Camera(logger=self.logger)
         print("Free Travel Running...")
         self.logger.write("Free Travel Running...", 0)
-        self.lens = camera.Camera(logger=self.logger)
         self.ultrasound = collision.Ultrasound(
             driver = self.driver,
             camera = self.lens, 
@@ -282,6 +284,7 @@ class Menu:
         self.ultrasound.run()
 
     def controller_run(self):
+        self.lens = camera.Camera(logger=self.logger)
         print("Remote Controll Running...")
         self.logger.write("Remote Controll Running...", 0)
         if self.selected_settings[4] == 0:
@@ -301,10 +304,22 @@ class Menu:
 
     def camera_traing_tun(self):
         print("Camera Travel Running...")
+        self.lens = camera.Camera(logger=self.logger)
         self.logger.write("Camera Travel Running...", 0)
+        # self.path_identify = rebuild.PathIdentify(
+        #     driver=self.driver,
+        #     logger=self.logger,
+        #     max_speed=self.MAX_SPEED*self.speed_value[self.selected_settings[1]],
+        #     color=self.selected_settings[0],
+        #     camera=self.lens
+        # )
+        # self.path_identify.run()
         identify_path.init(
-            max_speed = 70 * self.speed_value[self.selected_settings[1]],
-            color = self.selected_settings[0]
+            drive=self.driver,
+            logging=self.logger,
+            max_speed=70*self.speed_value[self.selected_settings[1]],
+            color=self.selected_settings[0],
+            camera=self.lens
         )
         identify_path.run()
 

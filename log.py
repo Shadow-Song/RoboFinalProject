@@ -9,5 +9,5 @@ class Logger:
 
     def write(self, message, level):
         if level < self.log_level:
-            self.terminal.write(message)
-            self.log.write(message)
+            # self.terminal.write(message)
+            self.log.write(f'{message}\n')
