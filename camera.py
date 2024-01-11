@@ -1,8 +1,8 @@
 import cv2
 import pyzbar.pyzbar as pyzbar
+import logging
 
 class Camera:
-
     cap = cv2.VideoCapture(0)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))  # 获取视频的宽度
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))  # 获取视频的高度
@@ -18,6 +18,11 @@ class Camera:
     result = None
     w1 = 300
     h1 = 300
+
+    logger: logging.Logger = None
+
+    def __init__(self, logger):
+        self.logger = logger
 
     def is_open(self):
         return self.cap.isOpened()

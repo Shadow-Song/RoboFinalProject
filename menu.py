@@ -5,6 +5,7 @@ import drive
 import controller
 import collision
 import camera
+import identify_path
 
 class Menu:
     # Device constants
@@ -57,7 +58,7 @@ class Menu:
 
     setting_content = [
         # ['on', 'off', 'auto'],
-        ['red', 'green', 'blue', 'black', 'yellow'],
+        ['blue', 'red', 'green', 'black', 'yellow'],
         ['25%', '50%', '75%', '100%'],
         # ['640x480', '1280x720', '1920x1080'],
         ['10cm', '20cm', '30cm', '40cm', '50cm', '1m'],
@@ -283,8 +284,10 @@ class Menu:
 
     def camera(self):
         print("Camera Travel Running...")
-
-    
+        identify_path.init(
+            rate=self.speed_value[self.selected_settings[1]],
+            color=self.selected_settings[0]
+        )
 
 if __name__ == '__main__':
     menu = Menu()
