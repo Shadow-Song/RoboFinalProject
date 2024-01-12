@@ -5,7 +5,6 @@ import drive
 import remote_controller as rc
 import collision
 import camera
-import rebuild
 import identify_path
 import log
 
@@ -87,7 +86,6 @@ class Menu:
     ultrasound: collision.Ultrasound = None
     lens: camera.Camera = None
     logger: log.Logger = None
-    path_identify: rebuild.PathIdentify = None
 
     def __init__(self):
         GPIO.setwarnings(False)
@@ -307,14 +305,6 @@ class Menu:
     def camera_traing_tun(self):
         print("Camera Travel Running...")
         self.logger.write("Camera Travel Running...", 0)
-        # self.path_identify = rebuild.PathIdentify(
-        #     driver=self.driver,
-        #     logger=self.logger,
-        #     max_speed=self.MAX_SPEED*self.speed_value[self.selected_settings[1]],
-        #     color=self.selected_settings[0],
-        #     camera=self.lens
-        # )
-        # self.path_identify.run()
         identify_path.init(
             drive=self.driver,
             logging=self.logger,
