@@ -22,14 +22,14 @@ lower = [
     [0, 90, 90],
     [35, 70, 50],
     [0, 0, 0],
-    [20, 100, 100]
+    [30, 50, 50]
 ]
 upper = [
     [124, 255, 255],
     [10, 255, 255],
     [85, 255, 255],
     [180, 255, 70],
-    [30, 255, 255]
+    [60, 255, 255]
 ]
 
 color_index: int = None
@@ -258,10 +258,13 @@ if __name__ == '__main__':
     
     logger = log.Logger(0)
     driver = drive.Driver(logger=logger)
+    lens = camera.Camera(logger=logger)
     init(
         drive=driver,
         logging=logger,
         max_speed=30,
-        color=0
+        color=4,
+        camera=lens
     )
     run()
+

@@ -82,10 +82,10 @@ class IRTracer:
             self.scan()
             self.update_direfction()
             self.driver.drive(self.left_servo_speed, self.right_servo_speed)
-            cb.jump_out()
+            # cb.jump_out()
 
 
 if __name__ == '__main__':
     driver = drive.Driver()
-    ir = IRTracer(speed_rate=0.75, driver=driver)
+    ir = IRTracer(max_speed=40, driver=driver)
     ir.run()

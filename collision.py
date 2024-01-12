@@ -5,7 +5,6 @@ import servo as sv
 import drive
 import camera
 import log
-import cancel_button as cb
 
 class Ultrasound:
     driver: drive.Driver = None
@@ -51,6 +50,7 @@ class Ultrasound:
 
         during = time2 - time1
         self.logger.write(f'Ultrasound sensor returned distance of {during}', 1)
+        print(f'got distance {during * 340 / 2 * 100}')
         return during * 340 / 2 * 100
 
     def measure(self, angle):
@@ -64,14 +64,16 @@ class Ultrasound:
             # button.jump_out()
             distance_front = self.measure(35)
             self.detected(distance_front=distance_front)
+            print('CHECK Frount')
             time.sleep(0.2)
             distance_front = self.measure(90)
             self.detected(distance_front=distance_front)
+            print('CHECK Frount')
             time.sleep(0.2)
             distance_front = self.measure(145)
             self.detected(distance_front=distance_front)
             time.sleep(0.2)
-            cb.jump_out()
+            print('CHECK Frount')
 
     def detected(self, distance_front):
         if distance_front < self.reaction_distance:
@@ -103,21 +105,22 @@ class Ultrasound:
         GPIO.cleanup()
 
     def run(self):
+        print('Running')
         thread1 = threading.Thread(target=self.lens.capture_QR)
         thread2 = threading.Thread(target=self.detection)
-
+        print('Thread Com')
         thread1.start()
         thread2.start()
+        
+        thread1.join()
+        thread2.join()
 
-        try:
-            thread1.join()
-            thread2.join()
-        except KeyboardInterrupt:
-            Ultrasound.destroy()
 
 # Test Code
 if __name__ == '__main__':
-    driver = drive.Driver()
-    lens = camera.Camera()
-    ultrasound = Ultrasound(driver=driver, camera=lens, max_speed=20, reaction_distance=30)
+    logger = log.Logger(0)
+    driver = drive.Driver(logger=logger)
+    lens = camera.Camera(logger=logger)
+    print('Got Camera')
+    ultrasound = Ultrasound(driver=driver, camera=lens, max_speed=20, reaction_distance=30, logger=logger)
     ultrasound.run()

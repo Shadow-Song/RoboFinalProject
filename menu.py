@@ -13,7 +13,7 @@ class Menu:
     # Device constants
     ButtonA = 17
     ButtonB = 20
-    ButtonC = 21
+    ButtonC = 13
 
     LCD_RS = 5  # Pi pin 26
     LCD_E = 4  # Pi pin 24
