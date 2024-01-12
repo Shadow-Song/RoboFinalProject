@@ -39,7 +39,7 @@ class Camera:
         if self.capture_flag:
             cv2.imwrite(f'./img/photo{self.image_index}.jpg', self.frame)
             print(f'照片{self.image_index}已保存')
-            self.logger.write(f'照片{self.image_index}已保存', 0)
+            self.logger.write(f'Photo {self.image_index} Saved.', 0)
             self.image_index += 1
         self.capture_flag = False
         

@@ -5,6 +5,7 @@ import drive
 import log
 import servo as sv
 import camera
+import cancel_button as cb
 
 ref = False
 driver: drive.Driver = None
@@ -203,9 +204,7 @@ def show_lines() -> VideoCapture:
         # cv.imshow("1", frame)  # show the frame picture.
 
         # close the camera when press 'esc'.
-        c = cv.waitKey(1) & 0xff
-        if c == 27:
-            break
+        cb.jump_out()
 
     return capture
 

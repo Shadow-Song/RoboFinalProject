@@ -5,6 +5,7 @@ import servo as sv
 import drive
 import camera
 import log
+import cancel_button as cb
 
 class Ultrasound:
     driver: drive.Driver = None
@@ -70,7 +71,8 @@ class Ultrasound:
             distance_front = self.measure(145)
             self.detected(distance_front=distance_front)
             time.sleep(0.2)
-            
+            cb.jump_out()
+
     def detected(self, distance_front):
         if distance_front < self.reaction_distance:
             self.logger.write(f'Distance is below limit of {self.reaction_distance}.', 1)

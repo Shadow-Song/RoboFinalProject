@@ -4,6 +4,7 @@ import drive
 import servo
 import camera
 import log
+import cancel_button as cb
 
 class IRController:
     BtnPin = 19
@@ -116,7 +117,7 @@ class DualShock4:
         pygame.joystick.init()
         if pygame.joystick.get_count() == 0:
             print(f"No joystick/gamepad found!")
-            return None
+            raise KeyboardInterrupt
         else:
             joystick = pygame.joystick.Joystick(0)
             joystick.init()
@@ -234,6 +235,7 @@ class DualShock4:
             self.servo_y.write(self.y_value)
             self.servo_z.write(self.z_value)
             self.lens.run()
+            cb.jump_out()
             if stop:
                 break
         pygame.quit()

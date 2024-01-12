@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO
 import drive
 import log
+import cancel_button as cb
 
 class IRTracer:
     T_SensorLeft = 13
@@ -64,7 +65,7 @@ class IRTracer:
             self.logger.write('Shift Right Fast.', 0)
             self.error = 40
         elif self.ir_sensors == 0b111:
-            self.logger.write('I\'m Blocked!', 0)
+            self.logger.write('I\'m Blocked!', 1)
             self.error = 0
         else: # 0b101
             self.error = 0
@@ -77,14 +78,12 @@ class IRTracer:
             self.right_servo_speed = self.MAX_SPEED
     
     def run(self):
-        try:
-            while True:
-                self.scan()
-                self.update_direfction()
-                self.driver.drive(self.left_servo_speed, self.right_servo_speed)
+        while True:
+            self.scan()
+            self.update_direfction()
+            self.driver.drive(self.left_servo_speed, self.right_servo_speed)
+            cb.jump_out()
 
-        except KeyboardInterrupt:
-            GPIO.cleanup()
 
 if __name__ == '__main__':
     driver = drive.Driver()

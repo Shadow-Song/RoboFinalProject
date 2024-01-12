@@ -15,14 +15,12 @@ class Menu:
     ButtonB = 20
     ButtonC = 21
 
-    LED = 12
-
     LCD_RS = 5  # Pi pin 26
     LCD_E = 4  # Pi pin 24
     LCD_D4 = 25  # Pi pin 22
     LCD_D5 = 24  # Pi pin 18
-    LCD_D6 = 23  # Pi pin 16
-    LCD_D7 = 18  # Pi pin 12
+    LCD_D6 = 12  # Pi pin 16
+    LCD_D7 = 16  # Pi pin 12
 
     select = None
     confirm = None
@@ -100,7 +98,6 @@ class Menu:
         GPIO.setup(self.LCD_D5, GPIO.OUT)
         GPIO.setup(self.LCD_D6, GPIO.OUT)
         GPIO.setup(self.LCD_D7, GPIO.OUT)
-        GPIO.setup(self.LED, GPIO.OUT)
         GPIO.setup(self.ButtonA, GPIO.IN, GPIO.PUD_UP)
         GPIO.setup(self.ButtonB, GPIO.IN, GPIO.PUD_UP)
         GPIO.setup(self.ButtonC, GPIO.IN, GPIO.PUD_UP)
@@ -110,7 +107,9 @@ class Menu:
         self.cancel = GPIO.input(self.ButtonC)
         # Initialize display
         self.lcd_init()
-        GPIO.output(self.LED, False)
+        self.logger = log.Logger(log_level=1)
+        self.driver = drive.Driver(logger=self.logger)
+        self.lens = camera.Camera(logger=self.logger)
 
     # Menu Level 1
     def menu_1(self):
@@ -249,16 +248,21 @@ class Menu:
 
     # Run selected mode
     def run(self):
-        self.logger = log.Logger(log_level=self.selected_settings[3])
-        self.driver = drive.Driver(logger=self.logger)
-        if self.selected_mode == 0:
-            self.ir_tracing_run()
-        elif self.selected_mode == 1:
-            self.camera_traing_tun()
-        elif self.selected_mode == 2:
-            self.free_travel_run()
-        elif self.selected_mode == 3:
-            self.controller_run()
+        self.logger.log_level = self.selected_settings[3]
+        self.lcd_text('Running...', self.LCD_LINE_2)
+        try:    
+            if self.selected_mode == 0:
+                self.ir_tracing_run()
+            elif self.selected_mode == 1:
+                self.camera_traing_tun()
+            elif self.selected_mode == 2:
+                self.free_travel_run()
+            elif self.selected_mode == 3:
+                self.controller_run()
+        except KeyboardInterrupt:
+            print('Mission Cancelled')
+            self.logger.write('Mission Cancelled', 0)
+            return
 
     def ir_tracing_run(self):
         print("IR Running...")
@@ -271,7 +275,6 @@ class Menu:
         self.ir_tracer.run()
 
     def free_travel_run(self):
-        self.lens = camera.Camera(logger=self.logger)
         print("Free Travel Running...")
         self.logger.write("Free Travel Running...", 0)
         self.ultrasound = collision.Ultrasound(
@@ -284,7 +287,6 @@ class Menu:
         self.ultrasound.run()
 
     def controller_run(self):
-        self.lens = camera.Camera(logger=self.logger)
         print("Remote Controll Running...")
         self.logger.write("Remote Controll Running...", 0)
         if self.selected_settings[4] == 0:
@@ -304,7 +306,6 @@ class Menu:
 
     def camera_traing_tun(self):
         print("Camera Travel Running...")
-        self.lens = camera.Camera(logger=self.logger)
         self.logger.write("Camera Travel Running...", 0)
         # self.path_identify = rebuild.PathIdentify(
         #     driver=self.driver,
